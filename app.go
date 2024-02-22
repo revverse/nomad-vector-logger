@@ -13,6 +13,7 @@ type Opts struct {
 	refreshInterval     time.Duration
 	removeAllocInterval time.Duration
 	nomadDataDir        string
+	customLogsDir	    string
 	vectorConfigDir     string
 	extraTemplatesDir   string
 }
@@ -39,6 +40,9 @@ type AllocMeta struct {
 	Task      string
 	Node      string
 	Group     string
+	TaskMeta  string
+	JobMeta   string
+	GroupMeta string
 }
 
 // Start initialises the subscription stream in background and waits

@@ -83,6 +83,7 @@ func initOpts(ko *koanf.Koanf) Opts {
 		refreshInterval:     ko.MustDuration("app.refresh_interval"),
 		removeAllocInterval: ko.MustDuration("app.remove_alloc_interval"),
 		nomadDataDir:        ko.MustString("app.nomad_data_dir"),
+		customLogsDir:       ko.MustString("app.custom_logs_dir"),
 		vectorConfigDir:     ko.MustString("app.vector_config_dir"),
 		extraTemplatesDir:   ko.String("app.extra_templates_dir"),
 	}

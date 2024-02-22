@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"strconv"
 	"text/template"
 
 	"github.com/hashicorp/nomad/api"
@@ -108,21 +110,37 @@ func (app *App) generateConfig(allocs map[string]*api.Allocation) error {
 	}
 
 	data := make([]AllocMeta, 0)
+	var subDir string
 
 	// Iterate on allocs in the map.
 	for _, alloc := range allocs {
 		// Add metadata for each task in the alloc.
 		for task := range alloc.TaskResources {
+			taskMetaJson := app.getTaskMeta(alloc, alloc.TaskGroup, task)
+			jobMetaJson, _ := json.Marshal(alloc.Job.Meta)
+			groupMetaJson, _ := json.Marshal(alloc.GetTaskGroup().Meta)
+			if err != nil {
+				app.log.Warn("Error occurred during marshaling. Error: ", err.Error())
+			}
+			// Hack for search logs in the custom log dir.
+			if app.opts.customLogsDir != "" {
+				subDir = app.opts.customLogsDir
+			} else {
+				subDir = "alloc/logs/"+task+"*"
+			}
 			// Add task to the data.
 			data = append(data, AllocMeta{
 				Key:       fmt.Sprintf("nomad_alloc_%s_%s", alloc.ID, task),
 				ID:        alloc.ID,
-				LogDir:    filepath.Join(fmt.Sprintf("%s/%s", app.opts.nomadDataDir, alloc.ID), "alloc/logs/"+task+"*"),
+				LogDir:    filepath.Join(fmt.Sprintf("%s/%s", app.opts.nomadDataDir, alloc.ID), subDir),
 				Namespace: alloc.Namespace,
 				Group:     alloc.TaskGroup,
 				Node:      alloc.NodeName,
 				Task:      task,
 				Job:       alloc.JobID,
+				TaskMeta:  taskMetaJson,
+				JobMeta:   strconv.Quote(string(jobMetaJson)),
+				GroupMeta: strconv.Quote(string(groupMetaJson)),
 			})
 		}
 	}
@@ -168,4 +186,20 @@ func (app *App) generateConfig(allocs map[string]*api.Allocation) error {
 	}
 
 	return nil
+}
+
+
+func (app *App) getTaskMeta(alloc *api.Allocation, group,task string) string {
+
+	for _, taskGroup := range alloc.Job.TaskGroups {
+		if *taskGroup.Name == group {
+			for _, tasks := range taskGroup.Tasks {
+				if tasks.Name == task {
+					taskMetaJson, _ := json.Marshal(tasks.Meta)
+					return strconv.Quote(string(taskMetaJson))
+				}
+			}
+		}
+	}
+	return ""
 }
