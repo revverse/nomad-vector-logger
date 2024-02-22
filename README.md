@@ -12,6 +12,9 @@ Each log event is annotated with the following metadata:
 - Group name
 - Task name
 - Allocation ID
+- TaskMeta
+- JobMeta
+- GroupMeta
 
 ## Why
 
